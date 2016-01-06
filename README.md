@@ -9,6 +9,7 @@ Cloned from script referenced here : https://goldmann.pl/blog/2014/01/16/running
 * Assign network addresses by setting the mac address on virt-install, then using virsh-netupdate
 
 For example
+
 ...
 net-update default delete ip-dhcp-host "<host mac='52:54:00:e3:da:6a' />" --live --config
 net-update default add-last ip-dhcp-host "<host mac='52:54:00:e3:da:6a' name='kube-node-02' ip='192.168.124.13'/>" --live --config
@@ -16,6 +17,7 @@ net-update default add-last ip-dhcp-host "<host mac='52:54:00:e3:da:6a' name='ku
 
 This is for setting ip addresses within the default nat virtual network.
 Requires dhcp range to be reduced
+
 ...
 <network>
   <name>default</name>
@@ -37,3 +39,4 @@ Requires dhcp range to be reduced
   </ip>
 </network>
 ...
+
