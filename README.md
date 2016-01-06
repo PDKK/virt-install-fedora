@@ -10,15 +10,15 @@ Cloned from script referenced here : https://goldmann.pl/blog/2014/01/16/running
 
 For example
 
-...
+```
 net-update default delete ip-dhcp-host "<host mac='52:54:00:e3:da:6a' />" --live --config
 net-update default add-last ip-dhcp-host "<host mac='52:54:00:e3:da:6a' name='kube-node-02' ip='192.168.124.13'/>" --live --config
-...
+```
 
 This is for setting ip addresses within the default nat virtual network.
 Requires dhcp range to be reduced
 
-...
+```
 <network>
   <name>default</name>
   <uuid>29e972d8-e019-4ec5-bc5f-d565676c55ac</uuid>
@@ -38,5 +38,5 @@ Requires dhcp range to be reduced
     </dhcp>
   </ip>
 </network>
-...
+```
 
