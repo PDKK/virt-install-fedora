@@ -49,7 +49,9 @@ pushd $DIR/$1 > /dev/null
   virsh undefine $1 &>> $1.log
 
 # cloud-init config: set the password, remove itself and power off
-  echo -e "#cloud-config\npassword: fedora\nchpasswd: {expire: False}\nssh_pwauth: True\nruncmd:\n  - [ yum, -y, remove, cloud-init ]\n  - [ poweroff ]" > $USER_DATA
+
+#  echo -e "#cloud-config\npassword: fedora\nchpasswd: {expire: False}\nssh_pwauth: True\nruncmd:\n  - [ yum, -y, remove, cloud-init ]\n  - [ poweroff ]" > $USER_DATA
+
   cat > $USER_DATA << EOF
 #cloud-config
 password: fedora
@@ -57,12 +59,18 @@ chpasswd: {expire: False}
 ssh_pwauth: True
 runcmd:
  - [ systemctl, mask, cloud-init.service ]
+ - [ systemctl, mask, cloud-config.service ]
  - [ sleep, 5 ]
  - [ sync ]
  - [ poweroff ]
 EOF
 
-  echo -e "instance-id: $1\nlocal-hostname: $1" > $META_DATA
+  cat > $META_DATA << EOF
+instance-id: $1
+local-hostname: $1
+public-keys:
+ - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+6kRY1WbqgY824rybwf/ki3NtoAXCb/DXMNr6RgqJmffsWFqBl8K2rGVxCpXNIuVxxezOj94wea0Lp5pPEn3ISWprqtDpVPmmfjkOYs9pANnSAp6vcD2QDr8zNljxuFPbZADvcYjb3L9TRcrin6CfNWZYS/J5r5w9Aedux1SWA89rgDUNQMz0/HDD9ewkElPK9PrKgBrg9jMtwL5QBjl8nCm0b+kL7y0ZhBjJzPpW+bLn3ahuicCYZk2vIVRNWBTCEiVdUCi1c69a0VMUWgxRc3JfX8FAYCKSJEwjqFh7awqvWK1Qt7TvhMBDv1yX6b2UElCI35Vpt7R/HqF2YtUZ Paul.Knox-Kennedy@pdkk-linux.eng.telsis.local
+EOF
 
   cp $IMAGE $DISK
 
