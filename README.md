@@ -3,6 +3,16 @@ Script to create fedora cloud image as virtual machine, automating cloud-init lo
 
 Cloned from script referenced here : https://goldmann.pl/blog/2014/01/16/running-fedora-cloud-images-on-kvm/
 
+Run using sudo ./virt-install-fedora <name> <ip>
+
+ip is the last byte of the 192.168.124.x address, and used as the last byte of the MAC address
+
+To get ready for an anisble install, make sure that the proxy is set correctly in dnf,
+then run 
+    dnf install -y python2 python2-dnf libselinux-python
+
+
+
 # Ideas to move forward
 
 * Apply all this to an atomic image

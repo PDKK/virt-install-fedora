@@ -5,8 +5,8 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-if ! [ $# -eq 1 ]; then
-    echo "Usage: $0 <node-name>"
+if ! [ $# -eq 2 ]; then
+    echo "Usage: $0 <node-name> <ip-address>"
     exit 1
 fi
 
@@ -18,7 +18,7 @@ DIR=/home/Paul.Knox-Kennedy/Images
 # The image downloaded from the http://fedoraproject.org/en/get-fedora#clouds site
 # You can use this command:
 # mkdir -p ~/work/virt-install && cd ~/work/virt-install && wget http://download.fedoraproject.org/pub/fedora/linux/releases/20/Images/x86_64/Fedora-x86_64-20-20131211.1-sda.qcow2  
-IMAGE=$DIR/Fedora-Cloud-Base-23-20151030.x86_64.qcow2
+IMAGE=$DIR/Fedora-Cloud-Atomic-23-20151215.x86_64.qcow2
 # Amount of RAM in MB
 MEM=1024
 # Number of virtual CPUs
@@ -78,8 +78,17 @@ EOF
 
   genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> $1.log
 
+
   echo "$(date -R) Installing the domain and adjusting the configuration..."
-  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics >> $1.log
+  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics --print-xml > $1.xml
+  virsh define $1.xml
+  mac=`virsh dumpxml $1 | grep "mac address" | tr -s \' ' '  | awk ' { print $3 } '`
+  virsh net-update default delete ip-dhcp-host "<host mac='$mac' />" --live --config
+  virsh net-update default delete ip-dhcp-host "<host ip='$2' />" --live --config
+  virsh net-update default add-last ip-dhcp-host "<host mac='$mac' name='$1' ip='$2'/>" --live --config
+
+  virsh start $1
+  while [ "$(virsh domstate $1)" != "shut off" ]; do echo waiting; sleep 5; done
 
   echo "$(date -R) Cleaning up cloud-init..."
   # virt-customize --add $DISK --run-command "systemctl mask cloud-init.service" 
@@ -97,6 +106,7 @@ EOF
     virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new >> $1.log
     mv $DISK.new $DISK
   fi
+
 
   if $RUN_AFTER; then
     echo "$(date -R) Launching the $1 domain..."
