@@ -68,8 +68,16 @@ EOF
   cat > $META_DATA << EOF
 instance-id: $1
 local-hostname: $1
+network-interfaces: |
+  auto ens2
+  iface ens2 inet static
+  address $2
+  network 192.168.124.0
+  netmask 255.255.255.0
+  broadcast 192.168.124.255
+  gateway 192.168.124.1
 public-keys:
- - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+6kRY1WbqgY824rybwf/ki3NtoAXCb/DXMNr6RgqJmffsWFqBl8K2rGVxCpXNIuVxxezOj94wea0Lp5pPEn3ISWprqtDpVPmmfjkOYs9pANnSAp6vcD2QDr8zNljxuFPbZADvcYjb3L9TRcrin6CfNWZYS/J5r5w9Aedux1SWA89rgDUNQMz0/HDD9ewkElPK9PrKgBrg9jMtwL5QBjl8nCm0b+kL7y0ZhBjJzPpW+bLn3ahuicCYZk2vIVRNWBTCEiVdUCi1c69a0VMUWgxRc3JfX8FAYCKSJEwjqFh7awqvWK1Qt7TvhMBDv1yX6b2UElCI35Vpt7R/HqF2YtUZ Paul.Knox-Kennedy@pdkk-linux.eng.telsis.local
+ - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMFNjfM41o9ep+p9HOVwlmaDb8MxmhRGPCNFHG3jgXwD/YUtn766bGdr67YzQRayqjhUzh95X1MhRAkxGD5iu7g+6DxuU393eIyDQbRjwMkNsBnSh8iv1J42X2E+9myu5ZMcgpKZM7dTMg5muUJv/h0n4W1id4bVm35x/TSqAKnGDxahBRpv3JEJ+WGsYgoCsXdJyRFl89boZXjYs6l2x36ZLxq9XXMFNufiPUmjd5TaLCkxkXSA88aFHqzxQEQ0YlG4NIlHNkyPFzTGSrWKfrDYOEKGvmTXHiW7pkfCtO5AhoOm6GloBhLpoJF53KezQ8M/H2tNZddKS1QaTb+3qR Paul.Knox-Kennedy@pdkk-linux.eng.telsis.local
 EOF
 
   cp $IMAGE $DISK
@@ -80,15 +88,8 @@ EOF
 
 
   echo "$(date -R) Installing the domain and adjusting the configuration..."
-  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics --print-xml > $1.xml
-  virsh define $1.xml
-  mac=`virsh dumpxml $1 | grep "mac address" | tr -s \' ' '  | awk ' { print $3 } '`
-  virsh net-update default delete ip-dhcp-host "<host mac='$mac' />" --live --config
-  virsh net-update default delete ip-dhcp-host "<host ip='$2' />" --live --config
-  virsh net-update default add-last ip-dhcp-host "<host mac='$mac' name='$1' ip='$2'/>" --live --config
+  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics &>> $1.log
 
-  virsh start $1
-  while [ "$(virsh domstate $1)" != "shut off" ]; do echo waiting; sleep 5; done
 
   echo "$(date -R) Cleaning up cloud-init..."
   # virt-customize --add $DISK --run-command "systemctl mask cloud-init.service" 
