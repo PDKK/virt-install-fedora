@@ -27,7 +27,7 @@ CPUS=2
 # Start the vm afterwards?
 RUN_AFTER=true
 # Resize the disk? By default it's a 2GB HDD
-RESIZE_DISK=true
+RESIZE_DISK=false
 DISK_SIZE=10G
 
 # You can change this too, but it's OK to leave it as-is
@@ -35,6 +35,7 @@ USER_DATA=user-data
 META_DATA=meta-data
 CI_ISO=$1-cidata.iso
 DISK=$1.qcow2
+DISK_EXTRA=$1-extra.qcow2
 
 rm -rf $DIR/$1
 mkdir -p $DIR/$1
@@ -57,11 +58,15 @@ pushd $DIR/$1 > /dev/null
 password: fedora
 chpasswd: {expire: False}
 ssh_pwauth: True
+write_files:
+-   content: |
+        GROWPART=true
+        AUTO_EXTEND_POOL=yes
+        DEVS="/dev/vdb"
+    path: /etc/sysconfig/docker-storage-setup
+    permissions: '0644'
 runcmd:
- - [ systemctl, mask, cloud-init.service ]
- - [ systemctl, mask, cloud-config.service ]
- - [ sleep, 5 ]
- - [ sync ]
+ - [ docker-storage-setup ]
  - [ poweroff ]
 EOF
 
@@ -88,16 +93,16 @@ EOF
 
 
   echo "$(date -R) Installing the domain and adjusting the configuration..."
-  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics &>> $1.log
+  virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk $DISK,format=qcow2,bus=virtio --disk $DISK_EXTRA,size=10,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network bridge=virbr0,model=virtio --os-type=linux --nographics &>> $1.log
 
 
   echo "$(date -R) Cleaning up cloud-init..."
   # virt-customize --add $DISK --run-command "systemctl mask cloud-init.service" 
   # We're not interested in having the cloud-init data still loaded, let's clean this up
   # Eject cdrom
-  virsh change-media $1 hda --eject --config >> $1.log
+  # virsh change-media $1 hda --eject --config >> $1.log
   # Remove the unnecessary cloud init files
-  rm $USER_DATA $META_DATA $CI_ISO
+  # rm $USER_DATA $META_DATA $CI_ISO
 
   if $RESIZE_DISK; then
     echo "$(date -R) Resizing the disk..."
@@ -108,6 +113,8 @@ EOF
     mv $DISK.new $DISK
   fi
 
+  #virsh vol-create-as $1 $1-extra.qcow2 10G
+  #virsh attach-disk $1 /home/Paul.Knox-Kennedy/Images/$1/$1-extra.qcow2 vdb --config
 
   if $RUN_AFTER; then
     echo "$(date -R) Launching the $1 domain..."
